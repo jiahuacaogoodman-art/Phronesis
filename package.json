@@ -1,0 +1,14 @@
+{
+  "name": "deliberative-thinking-agent-core",
+  "version": "0.4.0",
+  "private": true,
+  "type": "module",
+  "description": "A UI-free pre-coding deliberation core for software development goals.",
+  "scripts": {
+    "think:run": "sh scripts/run-think.sh",
+    "test": "sh scripts/run-tests.sh"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}
