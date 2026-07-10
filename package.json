@@ -1,14 +1,34 @@
 {
   "name": "deliberative-thinking-agent-core",
-  "version": "0.4.0",
+  "version": "0.26.0-alpha.1",
   "private": true,
   "type": "module",
-  "description": "A UI-free pre-coding deliberation core for software development goals.",
+  "description": "Conversation-native, deliberative planning-to-coding governance runtime with route blocking, technical research, native coding, evaluation, and feedback loops.",
   "scripts": {
-    "think:run": "sh scripts/run-think.sh",
-    "test": "sh scripts/run-tests.sh"
+    "build": "sh scripts/with-node.sh tsc -p tsconfig.build.json",
+    "typecheck": "sh scripts/with-node.sh tsc --noEmit",
+    "check": "pnpm typecheck && pnpm test && pnpm build",
+    "think:run": "sh scripts/with-node.sh tsx src/cli.ts",
+    "think:run:env": "sh scripts/with-node.sh tsx --import ./scripts/load-env.mjs src/cli.ts run",
+    "think:evaluate": "sh scripts/with-node.sh tsx src/cli.ts evaluate",
+    "think:compare": "sh scripts/with-node.sh tsx src/cli.ts compare",
+    "think:compare:env": "sh scripts/with-node.sh tsx --import ./scripts/load-env.mjs src/cli.ts compare",
+    "think:handoff": "sh scripts/with-node.sh tsx src/cli.ts handoff",
+    "think:ingest-coding-result": "sh scripts/with-node.sh tsx src/cli.ts ingest-coding-result",
+    "think:autocode": "sh scripts/with-node.sh tsx src/cli.ts autocode",
+    "think:autocode-eval": "sh scripts/with-node.sh tsx src/cli.ts autocode-eval",
+    "think:chat": "sh scripts/with-node.sh tsx src/cli.ts chat",
+    "think:conversation-eval": "sh scripts/with-node.sh tsx src/cli.ts conversation-eval",
+    "think:llm-smoke": "sh scripts/with-node.sh tsx src/cli.ts llm-smoke",
+    "think:llm-smoke:env": "sh scripts/with-node.sh tsx --import ./scripts/load-env.mjs src/cli.ts llm-smoke",
+    "test": "sh scripts/with-node.sh tsx --test tests/*.test.ts"
   },
   "engines": {
     "node": ">=20"
+  },
+  "devDependencies": {
+    "@types/node": "24.10.1",
+    "tsx": "4.20.6",
+    "typescript": "5.9.3"
   }
 }

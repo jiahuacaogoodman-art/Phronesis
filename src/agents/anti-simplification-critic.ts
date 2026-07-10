@@ -1,14 +1,16 @@
 import type {
+  AntiSimplificationFinding,
   AntiSimplificationReport,
   DomainAnalysis,
   EvidenceLedger,
   ProductExpansion,
   ProductIntentModel,
+  RiskLevel,
   StrategyCandidate,
   SynthesizedCapability,
-} from "../types/artifacts.ts";
+} from "../types/artifacts.js";
 
-function hasAny(values, signals) {
+function hasAny(values: readonly string[], signals: readonly string[]): boolean {
   const joined = values.join(" ").toLowerCase();
   return signals.some((signal) => joined.includes(signal.toLowerCase()));
 }
@@ -55,7 +57,7 @@ function capabilityIds(capabilities: SynthesizedCapability[]) {
 
 function ruleEvidenceRefs(ruleId: string, ledger?: EvidenceLedger) {
   if (!ledger) return ["E-PRINCIPLE-001"];
-  const map = {
+  const map: Record<string, string[]> = {
     "multi-actor-requires-permission": ["E-INTENT-001"],
     "resources-require-admin-management": ["E-INTENT-002"],
     "reservation-or-schedule-requires-conflict-detection": ["E-RISK-002", "E-RISK-001"],
@@ -168,7 +170,7 @@ export function critiqueSimplification(
     : [];
   const triggeredRules = compositionalRuleResults.filter((rule) => rule.triggered);
 
-  const strategyFindings = strategies.map((strategy) => {
+  const strategyFindings: AntiSimplificationFinding[] = strategies.map((strategy) => {
     const coverage = [
       ...strategy.productCoverage,
       ...(strategy.modules ?? []),
@@ -180,8 +182,8 @@ export function critiqueSimplification(
       return !alternatives.some((id) => coverage.includes(id) || expansion.coreCapabilities.some((capability) => capability.id === id && coverage.includes(capability.name)));
     });
     const domainHits = policy.minimumProductBar.filter((item) => coverage.includes(item)).length;
-    const findings = [];
-    const requiredUpgrades = [];
+    const findings: string[] = [];
+    const requiredUpgrades: string[] = [];
 
     if (strategy.productCompletenessScore && strategy.productCompletenessScore < 7) {
       findings.push("Product completeness score is too low for a product-grade thinking route.");
@@ -196,7 +198,7 @@ export function critiqueSimplification(
       requiredUpgrades.push("Make required synthesized capabilities explicit in route modules or operational/security capabilities.");
     }
 
-    const simplificationRisk =
+    const simplificationRisk: RiskLevel =
       missingRules.length > 1 || strategy.demoTrapResistanceScore < 7
         ? "high"
         : missingRules.length === 1 || domainHits < 3
@@ -220,7 +222,7 @@ export function critiqueSimplification(
   });
 
   return {
-    stance: `${policy.stance} v0.4 evaluates compositional shortcuts from Product Intent Model and Evidence Ledger.`,
+    stance: `${policy.stance} Compositional shortcuts are evaluated from the Product Intent Model, Evidence Providers, and Evidence Ledger.`,
     bannedShortcutSolutions: policy.bannedShortcutSolutions,
     minimumProductBar: policy.minimumProductBar,
     triggeredRules: triggeredRules.map((rule) => ({

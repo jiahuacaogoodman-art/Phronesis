@@ -1,5 +1,5 @@
-import type { EvidenceLedger, ProductIntentModel, SynthesizedCapability } from "../types/artifacts.ts";
-import { assumptionRefsForLedger, refsForCapability } from "./evidence-ledger.ts";
+import type { EvidenceLedger, ProductIntentModel, SynthesizedCapability } from "../types/artifacts.js";
+import { assumptionRefsForLedger, confidenceFromEvidenceRefs, refsForCapability } from "./evidence-ledger.js";
 
 function hasAny(values: string[], signals: string[]) {
   const joined = values.join(" ").toLowerCase();
@@ -247,14 +247,14 @@ export function synthesizeCapabilities(intent: ProductIntentModel, ledger?: Evid
   const assumptionRefs = assumptionRefsForLedger(ledger);
   return capabilities.map((capability) => {
     const evidenceRefs = refsForCapability(capability.id, ledger);
-    const missingPenalty = ledger.missingEvidence.length * ledger.confidenceModel.missingEvidencePenalty;
     const baseConfidence = capability.priority === "must" ? 0.84 : capability.priority === "should" ? 0.76 : 0.68;
     return {
       ...capability,
       evidenceRefs,
       assumptionRefs,
-      confidence: Number(Math.max(0.45, baseConfidence - missingPenalty / 2).toFixed(2)),
+      confidence: confidenceFromEvidenceRefs(evidenceRefs, ledger, baseConfidence),
       rejectionImpactIfMissing: capability.riskIfMissing,
+      missingEvidenceImpact: `Capability ${capability.id} should be revisited if ${ledger.missingEvidence.map((item) => item.id).slice(0, 3).join(", ")} changes the inferred actors, resources, workflows, or risk rules.`,
     };
   });
 }

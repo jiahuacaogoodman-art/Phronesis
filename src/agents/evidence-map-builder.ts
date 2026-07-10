@@ -1,4 +1,4 @@
-import type { EvidenceMap, ProductExpansion, ResearchPlan, ReconstructedIntent } from "../types/artifacts.ts";
+import type { EvidenceMap, ProductExpansion, ResearchPlan, ReconstructedIntent } from "../types/artifacts.js";
 
 export function buildEvidenceMap(
   intent: ReconstructedIntent,
@@ -6,7 +6,7 @@ export function buildEvidenceMap(
   researchPlan: ResearchPlan,
 ): EvidenceMap {
   return {
-    evidencePolicy: "Rule-based v0.1 evidence is treated as planning evidence, not externally verified fact.",
+    evidencePolicy: "Rule-based evidence is planning evidence, not externally verified fact.",
     items: [
       {
         id: "E1",

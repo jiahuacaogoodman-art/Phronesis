@@ -1,4 +1,5 @@
-import type { DomainAnalysis, DomainId } from "../types/artifacts.ts";
+import type { DomainAnalysis, DomainId } from "../types/artifacts.js";
+import type { ProductIntentModel } from "../types/artifacts.js";
 
 interface DomainRule {
   domainId: DomainId;
@@ -70,4 +71,32 @@ export function analyzeGoalDomain(rawGoal: string): DomainAnalysis {
 
 export function isDomain(domainAnalysis: DomainAnalysis, domainId: DomainId) {
   return domainAnalysis.domainId === domainId;
+}
+
+export function refineDomainAnalysisFromProductIntent(
+  domainAnalysis: DomainAnalysis,
+  productIntent: ProductIntentModel,
+): DomainAnalysis {
+  const text = [
+    productIntent.normalizedGoal,
+    productIntent.domainId,
+    ...productIntent.primaryActors,
+    ...productIntent.secondaryActors,
+    ...productIntent.coreResources,
+    ...productIntent.coreWorkflows,
+    ...productIntent.riskSurfaces,
+    ...productIntent.reportingNeeds,
+  ].join(" ");
+  const requiredSignals = ["医院", "实习", "轮转", "科室", "带教", "考核"];
+  const matchedSignals = requiredSignals.filter((signal) => text.includes(signal));
+  if (matchedSignals.length >= 4 || String(productIntent.domainId) === "medical-intern-rotation-management") {
+    return {
+      domainId: "medical-intern-rotation-management",
+      domainName: "医院实习轮转管理",
+      confidence: Math.max(0.75, domainAnalysis.confidence ?? 0),
+      matchedSignals: Array.from(new Set([...domainAnalysis.matchedSignals, ...matchedSignals])),
+      reasoningSummary: "ProductIntent-derived refinement found hospital internship rotation signals in actors, resources, workflows, and risks.",
+    };
+  }
+  return domainAnalysis;
 }

@@ -1,3 +1,16 @@
 node_modules/
+dist/
 .runs/
+.handoff/
+.eval-runs/
+.conversation/
+.conversation-eval-runs/
+coverage/
+.tmp-target-repos/
+toy-target-repo/
+**/llm-raw/
 .DS_Store
+.env
+.env.*
+!.env.example
+!.env.local.example

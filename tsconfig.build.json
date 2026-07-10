@@ -1,0 +1,13 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "noEmit": false,
+    "noEmitOnError": true,
+    "outDir": "dist",
+    "rootDir": "src",
+    "sourceMap": true,
+    "declaration": false
+  },
+  "include": ["src/**/*.ts"],
+  "exclude": ["tests", "dist", "node_modules", ".runs", ".handoff", ".eval-runs", ".conversation", ".conversation-eval-runs", "coverage"]
+}
