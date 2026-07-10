@@ -1,4 +1,4 @@
-import type { DomainAnalysis, ReconstructedIntent } from "../types/artifacts.ts";
+import type { DomainAnalysis, ReconstructedIntent } from "../types/artifacts.js";
 
 export function reconstructGoal(rawGoal: string, domainAnalysis: DomainAnalysis): ReconstructedIntent {
   const domainId = domainAnalysis.domainId;
@@ -43,7 +43,7 @@ export function reconstructGoal(rawGoal: string, domainAnalysis: DomainAnalysis)
           "monitor operational health",
           "export or audit important data",
         ],
-    explicitConstraints: ["No implementation code should be produced in v0.1."],
+    explicitConstraints: ["The deliberative planning phase must not produce implementation code."],
     inferredConstraints: [
       "The solution should be product-grade rather than a single-screen demo.",
       "The first output must be a deliberation record that later coding agents can consume.",

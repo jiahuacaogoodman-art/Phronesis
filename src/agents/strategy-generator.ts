@@ -6,8 +6,8 @@ import type {
   ReconstructedIntent,
   StrategyCandidate,
   SynthesizedCapability,
-} from "../types/artifacts.ts";
-import { synthesizeRoutes } from "../lib/route-synthesis.ts";
+} from "../types/artifacts.js";
+import { synthesizeRoutes } from "../lib/route-synthesis.js";
 
 export function generateStrategies(
   intent: ReconstructedIntent,
@@ -29,7 +29,7 @@ export function generateStrategies(
     triggeredBy: capability.triggeredBy ?? ["fallback:product-expansion"],
     userValue: capability.userValue ?? capability.acceptanceSignal,
     systemCapability: capability.systemCapability ?? capability.acceptanceSignal,
-    riskIfMissing: capability.riskIfMissing ?? "Capability was not modeled with v0.3 synthesis.",
+    riskIfMissing: capability.riskIfMissing ?? "Capability was not modeled by capability synthesis.",
   }));
 
   const fallbackIntent = {

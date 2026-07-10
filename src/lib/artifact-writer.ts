@@ -1,5 +1,6 @@
 import { mkdir, writeFile } from "node:fs/promises";
 import path from "node:path";
+import { redactSecretText, redactSecrets } from "../security/secret-redactor.js";
 
 export class ArtifactWriter {
   private readonly runDir: string;
@@ -15,12 +16,12 @@ export class ArtifactWriter {
   async writeJson(fileName: string, value: unknown): Promise<void> {
     await writeFile(
       path.join(this.runDir, fileName),
-      `${JSON.stringify(value, null, 2)}\n`,
+      `${JSON.stringify(redactSecrets(value), null, 2)}\n`,
       "utf8",
     );
   }
 
   async writeMarkdown(fileName: string, markdown: string): Promise<void> {
-    await writeFile(path.join(this.runDir, fileName), `${markdown.trim()}\n`, "utf8");
+    await writeFile(path.join(this.runDir, fileName), `${redactSecretText(markdown).trim()}\n`, "utf8");
   }
 }

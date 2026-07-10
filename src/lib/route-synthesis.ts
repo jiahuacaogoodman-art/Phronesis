@@ -1,11 +1,18 @@
 import type {
+  Complexity,
   DomainAnalysis,
   EvidenceLedger,
   ProductIntentModel,
   StrategyCandidate,
   SynthesizedCapability,
-} from "../types/artifacts.ts";
-import { assumptionRefsForLedger, refsForRoute } from "./evidence-ledger.ts";
+} from "../types/artifacts.js";
+import {
+  assumptionRefsForLedger,
+  confidenceFromEvidenceRefs,
+  refsForRoute,
+  routeEvidenceGapsFor,
+  routeEvidenceProfileFor,
+} from "./evidence-ledger.js";
 
 const routeArchetypes = [
   "admin-web-first",
@@ -16,7 +23,9 @@ const routeArchetypes = [
   "analytics-first",
   "lightweight-validated-product",
   "enterprise-governance",
-];
+] as const;
+
+type RouteArchetype = (typeof routeArchetypes)[number];
 
 function hasAny(values: string[], signals: string[]) {
   const joined = values.join(" ").toLowerCase();
@@ -31,10 +40,10 @@ function workflowPhrase(intent: ProductIntentModel) {
   return intent.coreWorkflows.slice(0, 3).join("、") || "核心业务流程";
 }
 
-function archetypeTitle(archetype: string, intent: ProductIntentModel, domainAnalysis: DomainAnalysis) {
+function archetypeTitle(archetype: RouteArchetype, intent: ProductIntentModel, domainAnalysis: DomainAnalysis): string {
   const resource = mainResource(intent);
   if (domainAnalysis.domainId === "attendance-checkin") {
-    const titles = {
+    const titles: Record<RouteArchetype, string> = {
       "admin-web-first": "Web 管理后台 + 动态二维码签到路线",
       "mobile-first": "微信/小程序扫码签到路线",
       "integration-first": "学校账号体系集成签到路线",
@@ -47,7 +56,7 @@ function archetypeTitle(archetype: string, intent: ProductIntentModel, domainAna
     return titles[archetype] ?? `${resource}组合式签到路线`;
   }
   if (domainAnalysis.domainId === "medical-quiz-practice") {
-    const titles = {
+    const titles: Record<RouteArchetype, string> = {
       "admin-web-first": "题库驱动刷题系统路线",
       "mobile-first": "多端学习平台路线",
       "integration-first": "题库导入与教学系统集成路线",
@@ -60,7 +69,7 @@ function archetypeTitle(archetype: string, intent: ProductIntentModel, domainAna
     return titles[archetype] ?? `${resource}学习路线`;
   }
   if (domainAnalysis.domainId === "schedule-calendar-management") {
-    const titles = {
+    const titles: Record<RouteArchetype, string> = {
       "admin-web-first": "日历核心课程表路线",
       "integration-first": "教务系统集成路线",
       "audit-and-compliance-first": "冲突检测与调课流程路线",
@@ -74,7 +83,7 @@ function archetypeTitle(archetype: string, intent: ProductIntentModel, domainAna
   }
 
   if (hasAny(intent.coreWorkflows, ["预约", "审批", "取消预约"])) {
-    const titles = {
+    const titles: Record<RouteArchetype, string> = {
       "admin-web-first": `${resource}预约后台管理优先路线`,
       "mobile-first": `移动端${resource}预约体验路线`,
       "integration-first": `${resource}台账/身份集成优先路线`,
@@ -88,7 +97,7 @@ function archetypeTitle(archetype: string, intent: ProductIntentModel, domainAna
   }
 
   if (hasAny(intent.coreResources, ["项目", "里程碑", "任务", "成果"])) {
-    const titles = {
+    const titles: Record<RouteArchetype, string> = {
       "admin-web-first": "科研项目协作管理路线",
       "mobile-first": "项目进度移动协同路线",
       "integration-first": "文档/成果系统集成路线",
@@ -102,7 +111,7 @@ function archetypeTitle(archetype: string, intent: ProductIntentModel, domainAna
   }
 
   if (hasAny(intent.coreWorkflows, ["报名", "活动发布", "名额"])) {
-    const titles = {
+    const titles: Record<RouteArchetype, string> = {
       "admin-web-first": "活动报名后台管理路线",
       "mobile-first": "移动端活动报名体验路线",
       "integration-first": "社团成员/通知渠道集成路线",
@@ -116,7 +125,7 @@ function archetypeTitle(archetype: string, intent: ProductIntentModel, domainAna
   }
 
   const readable = intent.normalizedGoal.replace(/^做一个/, "").replace(/系统$/, "");
-  const titles = {
+  const titles: Record<RouteArchetype, string> = {
     "admin-web-first": `${readable}运营后台优先路线`,
     "mobile-first": `${readable}移动体验优先路线`,
     "integration-first": `${readable}集成优先路线`,
@@ -129,8 +138,8 @@ function archetypeTitle(archetype: string, intent: ProductIntentModel, domainAna
   return titles[archetype] ?? `${readable}组合路线`;
 }
 
-function chooseArchetypes(intent: ProductIntentModel) {
-  const selected = ["admin-web-first", "lightweight-validated-product"];
+function chooseArchetypes(intent: ProductIntentModel): RouteArchetype[] {
+  const selected: RouteArchetype[] = ["admin-web-first", "lightweight-validated-product"];
 
   if (hasAny(intent.coreWorkflows, ["报名", "签到", "预约", "练习", "查看", "通知"])) {
     selected.push("mobile-first");
@@ -154,7 +163,7 @@ function chooseArchetypes(intent: ProductIntentModel) {
   return Array.from(new Set(selected)).filter((item) => routeArchetypes.includes(item)).slice(0, 6);
 }
 
-function complexityFor(archetype: string) {
+function complexityFor(archetype: RouteArchetype): Complexity {
   if (archetype === "integration-first" || archetype === "enterprise-governance") {
     return "very-high";
   }
@@ -167,7 +176,7 @@ function complexityFor(archetype: string) {
   return "medium";
 }
 
-function routeModules(archetype: string, intent: ProductIntentModel, capabilities: SynthesizedCapability[]) {
+function routeModules(archetype: RouteArchetype, intent: ProductIntentModel, capabilities: SynthesizedCapability[]): string[] {
   const common = [
     `${mainResource(intent)}模型`,
     "角色权限",
@@ -199,7 +208,7 @@ function routeModules(archetype: string, intent: ProductIntentModel, capabilitie
   return [...common, ...byCapability];
 }
 
-function buildRoute(archetype: string, index: number, intent: ProductIntentModel, domainAnalysis: DomainAnalysis, capabilities: SynthesizedCapability[], evidenceLedger?: EvidenceLedger): StrategyCandidate {
+function buildRoute(archetype: RouteArchetype, index: number, intent: ProductIntentModel, domainAnalysis: DomainAnalysis, capabilities: SynthesizedCapability[], evidenceLedger?: EvidenceLedger): StrategyCandidate {
   const title = archetypeTitle(archetype, intent, domainAnalysis);
   const triggeredBy = [
     ...intent.primaryActors.slice(0, 2).map((actor) => `actor:${actor}`),
@@ -213,12 +222,19 @@ function buildRoute(archetype: string, index: number, intent: ProductIntentModel
   const evidenceRefs = evidenceLedger ? refsForRoute({ routeArchetype: archetype }, evidenceLedger) : ["E-GOAL-001", "E-INTENT-002", "E-INTENT-003"];
   const assumptionRefs = evidenceLedger ? assumptionRefsForLedger(evidenceLedger) : ["A-001"];
   const missingEvidencePenalty = evidenceLedger ? evidenceLedger.missingEvidence.length * evidenceLedger.confidenceModel.missingEvidencePenalty : 0.12;
+  const evidenceGaps = evidenceLedger ? routeEvidenceGapsFor({ routeArchetype: archetype }, evidenceLedger) : ["ME-001"];
+  let routeEvidenceProfile = { strong: 0, moderate: 2, weak: 0, missing: 1, coverageScore: 0.58, gapRefs: ["ME-001"] };
+  if (evidenceLedger) {
+    routeEvidenceProfile = routeEvidenceProfileFor({ routeArchetype: archetype, evidenceRefs }, evidenceLedger);
+  }
   const routePenalty =
     archetype === "integration-first" ? 0.12 :
     archetype === "enterprise-governance" ? 0.1 :
     archetype === "offline-first" ? 0.08 :
     0.02;
-  const confidence = Number(Math.max(0.46, Math.min(0.9, completeness / 10 - missingEvidencePenalty - routePenalty)).toFixed(2));
+  const confidence = evidenceLedger
+    ? confidenceFromEvidenceRefs(evidenceRefs, evidenceLedger, completeness / 10 - routePenalty)
+    : Number(Math.max(0.46, Math.min(0.9, completeness / 10 - missingEvidencePenalty - routePenalty)).toFixed(2));
 
   return {
     id: `S${index + 1}`,
@@ -258,7 +274,7 @@ function buildRoute(archetype: string, index: number, intent: ProductIntentModel
       "保留后续 Coding Agent 可执行的模块边界。",
     ],
     cons: [
-      "v0.3 仍是规则推导，需要后续用户确认不确定点。",
+      "当前路线仍包含规则推导和证据占位，需要后续用户确认不确定点。",
       "复杂流程需要真实业务访谈校准。",
     ],
     productCompletenessScore: Number(completeness.toFixed(1)),
@@ -269,6 +285,18 @@ function buildRoute(archetype: string, index: number, intent: ProductIntentModel
     missingEvidenceImpact: evidenceLedger
       ? `Missing evidence ${evidenceLedger.missingEvidence.map((item) => item.id).slice(0, 3).join(", ")} may change route priority, especially user scale, integration constraints, and workflow rules.`
       : "Missing external validation may change route priority.",
+    routeEvidenceProfile,
+    evidenceGaps,
+    conditionsToPreferThisRoute: [
+      `Prefer when ${mainResource(intent)} management and ${workflowPhrase(intent)} need to be productized before coding.`,
+      `Prefer if route-specific evidence ${(evidenceRefs.filter((ref) => ref.startsWith("E-ROUTE")).join(", ") || "is added")} remains valid after stakeholder confirmation.`,
+      archetype === "integration-first" ? "Prefer if ME-002 confirms mandatory external systems." : "Prefer if external integration is optional for the first delivery slice.",
+    ],
+    conditionsToRejectThisRoute: [
+      `Reject if evidence gaps ${evidenceGaps.join(", ")} invalidate the assumed workflow or operating model.`,
+      archetype === "lightweight-validated-product" ? "Reject if security, audit, or compliance evidence confirms product-grade risk." : "Reject if cost/complexity blocks a coherent first executable slice.",
+      archetype === "analytics-first" ? "Reject if event and reporting definitions are not stable enough for analytics." : "Reject if critic-specific evidence becomes a confirmed blocker.",
+    ],
 
     thesis: `${title}：围绕 ${mainResource(intent)}、${workflowPhrase(intent)} 和 ${intent.riskSurfaces.slice(0, 2).join("、")} 组合架构能力。`,
     targetFit: `适合 ${intent.normalizedGoal} 中由 ${triggeredBy.slice(0, 4).join("、")} 触发的产品级路线。`,

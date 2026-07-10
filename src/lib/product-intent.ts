@@ -1,4 +1,4 @@
-import type { DomainAnalysis, ProductIntentModel } from "../types/artifacts.ts";
+import type { DomainAnalysis, ProductIntentModel } from "../types/artifacts.js";
 
 function includesAny(text: string, signals: string[]) {
   return signals.some((signal) => text.includes(signal.toLowerCase()));

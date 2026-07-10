@@ -1,0 +1,20 @@
+import { existsSync, readFileSync } from "node:fs";
+import path from "node:path";
+
+const envPath = path.resolve(process.cwd(), ".env.local");
+
+if (existsSync(envPath)) {
+  const content = readFileSync(envPath, "utf8");
+  for (const line of content.split(/\r?\n/)) {
+    const trimmed = line.trim();
+    if (!trimmed || trimmed.startsWith("#")) continue;
+    const separatorIndex = trimmed.indexOf("=");
+    if (separatorIndex <= 0) continue;
+    const key = trimmed.slice(0, separatorIndex).trim();
+    const rawValue = trimmed.slice(separatorIndex + 1).trim();
+    if (!(key in process.env)) {
+      const value = rawValue.replace(/^['"]|['"]$/g, "");
+      process.env[key] = value;
+    }
+  }
+}

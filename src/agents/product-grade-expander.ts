@@ -5,7 +5,7 @@ import type {
   ProductIntentModel,
   ReconstructedIntent,
   SynthesizedCapability,
-} from "../types/artifacts.ts";
+} from "../types/artifacts.js";
 
 function capability(
   id: string,
@@ -15,7 +15,7 @@ function capability(
   acceptanceSignal: string,
   extras = {},
 ): ProductCapability {
-  return { id, name, priority, whyItMatters, acceptanceSignal, ...extras };
+  return { id, name, priority, description: whyItMatters, whyItMatters, acceptanceSignal, ...extras };
 }
 
 function domainExtras(confidence = 0.78) {
@@ -24,6 +24,7 @@ function domainExtras(confidence = 0.78) {
     assumptionRefs: ["A-001"],
     confidence,
     rejectionImpactIfMissing: "领域增强能力缺失会让方案退化为泛化产品方案，降低成品级适配度。",
+    missingEvidenceImpact: "如果领域识别或真实流程规则被推翻，该领域增强能力需要重新评估。",
   };
 }
 
@@ -44,6 +45,7 @@ function fromSynthesized(item: SynthesizedCapability): ProductCapability {
       assumptionRefs: item.assumptionRefs,
       confidence: item.confidence,
       rejectionImpactIfMissing: item.rejectionImpactIfMissing,
+      missingEvidenceImpact: item.missingEvidenceImpact,
     },
   );
 }

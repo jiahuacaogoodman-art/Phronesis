@@ -6,7 +6,7 @@ import type {
   ReconstructedIntent,
   SelectedRoute,
   StrategyCandidate,
-} from "../types/artifacts.ts";
+} from "../types/artifacts.js";
 
 export function planArchitecture(
   intent: ReconstructedIntent,
@@ -103,5 +103,5 @@ ${selectedRoute.residualRisks.map((risk) => `- ${risk}`).join("\n")}
 
 ## Explicit Non-Implementation Boundary
 
-This v0.1 run deliberately stops before source code, UI, dashboard, repository scanning, or patch generation.`;
+This planning run deliberately stops before source code, UI, dashboard, repository scanning, or patch generation.`;
 }

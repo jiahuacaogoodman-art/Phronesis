@@ -4,10 +4,14 @@
     "module": "NodeNext",
     "moduleResolution": "NodeNext",
     "strict": true,
-    "skipLibCheck": true,
+    "skipLibCheck": false,
     "types": ["node"],
-    "allowImportingTsExtensions": true,
-    "noEmit": true
+    "noEmit": true,
+    "rootDir": "src",
+    "forceConsistentCasingInFileNames": true,
+    "noImplicitOverride": true,
+    "noFallthroughCasesInSwitch": true
   },
-  "include": ["src/**/*.ts"]
+  "include": ["src/**/*.ts"],
+  "exclude": ["dist", "node_modules", ".runs", ".handoff", ".eval-runs", ".conversation", ".conversation-eval-runs", "coverage"]
 }

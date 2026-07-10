@@ -4,9 +4,10 @@ import type {
   ExecutionTask,
   ExecutionTaskGraph,
   ProductIntentModel,
+  RiskLevel,
   SelectedRoute,
   SynthesizedCapability,
-} from "../types/artifacts.ts";
+} from "../types/artifacts.js";
 
 function task(
   id: string,
@@ -21,15 +22,38 @@ function task(
   return { id, title, dependsOn, ownerAgent, purpose, deliverables, acceptanceCriteria, riskLevel };
 }
 
-function hasAny(values, signals) {
+function hasAny(values: readonly string[], signals: readonly string[]): boolean {
   const joined = values.join(" ").toLowerCase();
   return signals.some((signal) => joined.includes(signal.toLowerCase()));
 }
 
-function add(tasks: ExecutionTask[], next: ExecutionTask) {
+function add(tasks: ExecutionTask[], next: ExecutionTask): void {
   if (!tasks.some((taskItem) => taskItem.id === next.id)) {
     tasks.push(next);
   }
+}
+
+function claimId(value: string): string {
+  return `C-${value.toUpperCase().replace(/[^A-Z0-9]+/g, "-")}`;
+}
+
+function requiredEvidenceForTask(taskItem: ExecutionTask, selectedRoute: SelectedRoute): string[] {
+  const refs = new Set(selectedRoute.evidenceGapsAccepted ?? []);
+  const haystack = `${taskItem.id} ${taskItem.title} ${taskItem.purpose}`.toLowerCase();
+  if (haystack.includes("auth") || haystack.includes("role") || haystack.includes("permission") || haystack.includes("身份") || haystack.includes("权限")) {
+    refs.add("ME-002");
+  }
+  if (haystack.includes("conflict") || haystack.includes("approval") || haystack.includes("review") || haystack.includes("workflow") || haystack.includes("冲突") || haystack.includes("审批") || haystack.includes("审核")) {
+    refs.add("ME-003");
+  }
+  if (haystack.includes("deployment") || haystack.includes("backup") || haystack.includes("ops") || haystack.includes("部署") || haystack.includes("备份")) {
+    refs.add("ME-001");
+    refs.add("ME-004");
+  }
+  if (haystack.includes("audit") || haystack.includes("compliance") || haystack.includes("export") || haystack.includes("report") || haystack.includes("审计") || haystack.includes("导出")) {
+    refs.add("ME-004");
+  }
+  return Array.from(refs);
 }
 
 function attendanceTasks() {
@@ -133,7 +157,7 @@ function compositionalTasks(intent: ProductIntentModel) {
   return tasks;
 }
 
-function fallbackIntent() {
+function fallbackIntent(): ProductIntentModel {
   return {
     rawGoal: "generic",
     normalizedGoal: "generic",
@@ -161,7 +185,8 @@ export function buildExecutionTaskGraph(
   synthesizedCapabilities: SynthesizedCapability[] = [],
   evidenceLedger?: EvidenceLedger,
 ): ExecutionTaskGraph {
-  let tasks;
+  const routeCanProceed = selectedRoute.canProceedToCoding !== false;
+  let tasks: ExecutionTask[];
   if (domainAnalysis.domainId === "attendance-checkin") {
     tasks = attendanceTasks();
   } else if (domainAnalysis.domainId === "medical-quiz-practice") {
@@ -173,7 +198,7 @@ export function buildExecutionTaskGraph(
   }
 
   const riskRefs = productIntent?.riskSurfaces ?? [];
-  const enrichedTasks = tasks.map((taskItem) => {
+  const enrichedTasks: ExecutionTask[] = tasks.map((taskItem) => {
     const capabilityHits = synthesizedCapabilities
       .filter((capability) => {
         const haystack = `${taskItem.id} ${taskItem.title} ${taskItem.purpose} ${taskItem.ownerAgent}`;
@@ -193,6 +218,11 @@ export function buildExecutionTaskGraph(
       taskItem.id.includes("report") || taskItem.id.includes("export") ? "E-REPORT-001" : "",
       ...(selectedRoute.evidenceRefs ?? []),
     ].filter(Boolean))).filter((ref) => !evidenceLedger || evidenceLedger.evidenceItems.some((item) => item.id === ref)).slice(0, 6);
+    const requiredEvidenceBeforeExecution = requiredEvidenceForTask(taskItem, selectedRoute);
+    const evidenceGapRisk: RiskLevel =
+      taskItem.riskLevel === "high" && requiredEvidenceBeforeExecution.length > 1 ? "high" :
+      requiredEvidenceBeforeExecution.length > 0 ? "medium" :
+      "low";
 
     return {
       ...taskItem,
@@ -201,12 +231,24 @@ export function buildExecutionTaskGraph(
       derivedFromCapabilities,
       derivedFromRisks: riskRefs.slice(0, 4),
       verificationHint: `Verify ${taskItem.id} against evidence ${evidenceRefs.slice(0, 3).join(", ")} and risks ${riskRefs.slice(0, 2).join("、") || "none listed"}.`,
+      claimRefs: [
+        claimId(`task-${taskItem.id}`),
+        ...(selectedRoute.decisiveClaims ?? []).slice(0, 3),
+      ],
+      requiredEvidenceBeforeExecution,
+      evidenceGapRisk,
+      shouldBlockCodingUntilResolved: !routeCanProceed || evidenceGapRisk === "high",
     };
   });
 
   return {
     graphType: "directed-acyclic-task-graph",
-    handoffPurpose: `Prepare later coding agents to execute selected route ${selectedRoute.selectedStrategyId} (${selectedRoute.selectedTitle}) without collapsing into a demo. Task graph was shaped by ${productIntent ? "Product Intent Model" : "domain fallback"}.`,
+    handoffPurpose: routeCanProceed
+      ? `Prepare later coding agents to execute selected route ${selectedRoute.selectedStrategyId} (${selectedRoute.selectedTitle}) without collapsing into a demo. Task graph was shaped by ${productIntent ? "Product Intent Model" : "domain fallback"}.`
+      : `Do not hand off to Coding Agent yet. Selected route ${selectedRoute.selectedStrategyId} (${selectedRoute.selectedTitle}) is only a planning hypothesis until blockers are resolved.`,
+    canProceedToCoding: routeCanProceed,
+    globalBlockingReasons: selectedRoute.blockingReasons ?? [],
+    requiredClarificationsBeforeCoding: selectedRoute.requiredClarificationsBeforeCoding ?? [],
     tasks: enrichedTasks,
     suggestedExecutionOrder: enrichedTasks.map((item) => item.id),
   };

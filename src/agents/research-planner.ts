@@ -1,8 +1,8 @@
-import type { ProductExpansion, ResearchPlan, ReconstructedIntent } from "../types/artifacts.ts";
+import type { ProductExpansion, ResearchPlan, ReconstructedIntent } from "../types/artifacts.js";
 
 export function planResearch(intent: ReconstructedIntent, expansion: ProductExpansion): ResearchPlan {
   return {
-    scope: "v0.1 creates a research plan and evidence map without performing network research.",
+    scope: "Create a research plan and evidence map without treating uncollected external evidence as fact.",
     researchQuestions: [
       {
         id: "RQ1",
